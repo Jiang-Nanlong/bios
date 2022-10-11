@@ -1,0 +1,10 @@
+<component>
+    name = "OemGetSpdData"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemGetSpdData\"
+    RefName = "OemGetSpdData"
+[INF]
+"OemGetSpdData.inf"
+[files]
+"OemGetSpdData.sdl"	
+<endComponent>

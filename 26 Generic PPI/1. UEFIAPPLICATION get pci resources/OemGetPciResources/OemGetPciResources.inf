@@ -1,0 +1,27 @@
+[Defines]
+INF_VERSION = 0x00010015
+VERSION_STRING = 1.0
+BASE_NAME = OemGetPciResources
+MODULE_TYPE = UEFI_APPLICATION
+FILE_GUID = 67b40c67-4925-46fd-9427-43f416616c01
+ENTRY_POINT = GetPciResourcesEntryPoint
+
+[Sources]
+    GetPciResources.c
+
+[LibraryClasses]
+    UefiApplicationEntryPoint
+    UefiBootServicesTableLib
+    UefiLib
+    UefiRuntimeServicesTableLib
+    PciLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiTsePkg/AmiTsePkg.dec
+
+[Depex]
+    

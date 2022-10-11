@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemSio_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemSio support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemSio"
+    File  = "OemSio.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OemSio_INF_SUPPORT" "=" "1"
+End
+

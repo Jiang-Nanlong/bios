@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemGetPciResources_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemGetPciResources support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemGetPciResources"
+    File  = "OemGetPciResources.inf"
+    Package  = "OemPkg"
+    ModuleTypes = "UEFI_APPLICATION"
+    Token = "OemGetPciResources_INF_SUPPORT" "=" "1"
+End
+

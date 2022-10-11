@@ -1,0 +1,52 @@
+TOKEN
+    Name  = "OemTest3_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemTest3 support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+PATH
+    Name  = "OEM_TEST_DIR"
+End
+
+ELINK
+    Name  = "$(OEM_TEST_DIR)/OemTest3.sd"
+    Parent  = "SETUP_DEFINITIONS"
+    InvokeOrder = AfterParent
+End
+
+ELINK
+    Name  = "$(OEM_TEST_DIR)/OemTest3.uni"
+    Parent  = "SetupStringFiles"
+    InvokeOrder = AfterParent
+End
+
+TOKEN
+    Name  = "OemPassword_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemPassword support in Project"
+    TokenType = Boolean
+End
+
+INFComponent
+    Name  = "OemPassword"
+    File  = "OemPassword.inf"
+    Package  = "OemPkg"
+    ModuleTypes = "DXE_DRIVER"
+    Token = "OemPassword_INF_SUPPORT" "=" "1"
+End
+
+ LibraryMapping
+    Class = "VerifyPasswordLib"
+    Instance = "OemPkg.OemPassword"
+    ModuleTypes = "DXE_DRIVER UEFI_APPLICATION"
+End
+
+ELINK
+    Name  = "VerifyPasswordLib"
+    Parent  = "ADDITIONAL_AMITSE_LibraryClasses"
+    InvokeOrder = AfterParent
+End
+

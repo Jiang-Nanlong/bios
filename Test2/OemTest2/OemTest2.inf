@@ -1,0 +1,27 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemTest2
+    MODULE_TYPE = UEFI_APPLICATION
+    FILE_GUID = f4606548-6e41-4fe3-b279-516cd527a6bb
+    ENTRY_POINT = GetSmbiosTypeEntryPoint
+
+[Sources]
+    GetSmbiosType.c
+
+[LibraryClasses]
+    UefiApplicationEntryPoint
+    UefiBootServicesTableLib
+    UefiLib
+    UefiRuntimeServicesTableLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiTsePkg/AmiTsePkg.dec
+    AMIDebuggerPkg/AMIDebuggerPkg.dec
+[Protocols]
+    gEfiSmbiosProtocolGuid
+    

@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemGetSpdData_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemGetSpdData support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemGetSpdData"
+    File  = "OemGetSpdData.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "PEIM"
+    Token = "OemGetSpdData_INF_SUPPORT" "=" "1"
+End
+

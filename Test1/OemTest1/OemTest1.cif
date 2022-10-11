@@ -1,0 +1,10 @@
+<component>
+    name = "OemTest1"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemTest1\"
+    RefName = "OemTest1"
+[INF]
+"OemTest1.inf"
+[files]
+"OemTest1.sdl"	
+<endComponent>

@@ -1,0 +1,30 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemAcpi
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = d6b3af49-72fb-4c84-9ee9-96328f4f9bfe
+    ENTRY_POINT = SetAcpiTableEntryPoint
+
+[Sources]
+    InstallAcpiTable.c
+
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiDriverEntryPoint
+    AmiCspLib
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+
+[Protocols]
+    gEfiAcpiTableProtocolGuid
+    
+[Depex]
+    #gEfiAcpiTableProtocolGuid   AND
+    gEfiAcpiSupportGuid     AND
+    gEfiAcpiSdtProtocolGuid

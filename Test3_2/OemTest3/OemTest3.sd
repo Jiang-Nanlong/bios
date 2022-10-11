@@ -1,0 +1,43 @@
+//***********************************************************************
+//*                                                                     *
+//*   Copyright (c) 1985-2019, American Megatrends International LLC.   *
+//*                                                                     *
+//*      All rights reserved. Subject to AMI licensing agreement.       *
+//*                                                                     *
+//***********************************************************************
+
+#ifdef SETUP_DATA_DEFINITION
+    UINT8   OemUserOenof;
+    UINT8   OemAdministratorOenof;
+#endif
+
+#ifdef CONTROL_DEFINITION
+        
+#define OEM_ONEOF_OPTION1\
+    oneof varid    = SETUP_DATA.OemUserOenof,\
+        prompt   = STRING_TOKEN(OEM_STR_USER_ONEOF),\
+        help     = STRING_TOKEN(OEM_STR_USER_ONEOF_HELP),\
+        option text = STRING_TOKEN(OEM_STR_USER_NO), value = 0, flags = DEFAULT | MANUFACTURING | RESET_REQUIRED;\
+        option text = STRING_TOKEN(OEM_STR_USER_YES), value = 1, flags = RESET_REQUIRED;\
+    endoneof;
+      
+#define OEM_ONEOF_OPTION2\
+    oneof varid    = SETUP_DATA.OemAdministratorOenof,\
+        prompt   = STRING_TOKEN(OEM_STR_ADMINISTRATOR_ONEOF),\
+        help     = STRING_TOKEN(OEM_STR_ADMINISTRATOR_ONEOF_HELP),\
+        option text = STRING_TOKEN(OEM_STR_ADMINISTRATOR_NO), value = 0, flags = DEFAULT | MANUFACTURING | RESET_REQUIRED;\
+        option text = STRING_TOKEN(OEM_STR_ADMINISTRATOR_YES), value = 1, flags = RESET_REQUIRED;\
+    endoneof;
+    
+#endif //#ifdef CONTROL_DEFINITION
+
+#ifdef SECURITY_FORM_SET //SECURITY_FORM_SET
+    #ifdef FORM_SET_ITEM
+    
+        OEM_ONEOF_OPTION1
+        OEM_ONEOF_OPTION2
+    
+    #endif //End of FORM_SET_FORM
+
+#endif// End of SECURITY_FORM_SET
+        

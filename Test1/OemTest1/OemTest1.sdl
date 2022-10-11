@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemTest1_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemTest1 support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemTest1"
+    File  = "OemTest1.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OemTest1_INF_SUPPORT" "=" "1"
+End
+

@@ -1,0 +1,34 @@
+TOKEN
+    Name  = "OemAcpi_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemAcpi support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemAcpi"
+    File  = "OemAcpi.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OemAcpi_INF_SUPPORT" "=" "1"
+End
+
+PCIDEVICE
+    Title                = "OemAcpi"
+    Parent               = "PciHost (Virtual)"
+    Attribute            = "0x0"
+    Dev_type             = "Container"
+    Dev                  = 00h
+    Fun                  = 00h
+    SleepNum             = 01h
+    ASLfile              = "'OemPkg\OemAcpi\OemAcpi.asl;After Pci Tree'"
+    PCIBusSize           = 32bit
+    ROMMain              = No
+    Virtual              = Yes
+    PCIExpress           = Yes
+    ASL_PTS              = "Method;\AA(ARG0)"
+    Enforce              = Yes
+    Token                = "OemAcpi_INF_SUPPORT" "=" "1"
+End

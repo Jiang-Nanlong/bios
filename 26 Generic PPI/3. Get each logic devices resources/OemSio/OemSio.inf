@@ -1,0 +1,29 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemSio
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = eb45b721-9ea3-44d5-a30c-26e781b7c5e6
+    ENTRY_POINT = GetDeviceSourcesEntryPoint
+
+[Sources]
+    GetLogicDeviceResources.c
+    
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiDriverEntryPoint
+    AmiSioDxeLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    
+[Protocols]
+    gEfiAmiSioProtocolGuid
+[Depex]
+    TRUE
+    

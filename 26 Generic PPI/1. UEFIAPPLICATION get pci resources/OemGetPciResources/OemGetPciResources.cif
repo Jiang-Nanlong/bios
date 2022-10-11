@@ -1,0 +1,10 @@
+<component>
+    name = "OemGetPciResources"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemGetPciResources\"
+    RefName = "OemGetPciResources"
+[INF]
+"OemGetPciResources.inf"
+[files]
+"OemGetPciResources.sdl"	
+<endComponent>

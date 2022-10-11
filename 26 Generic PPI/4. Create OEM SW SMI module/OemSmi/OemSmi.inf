@@ -1,0 +1,31 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemSmi
+    MODULE_TYPE = DXE_SMM_DRIVER
+    FILE_GUID = e0f67f4e-ae80-4634-85c1-ce6d72373fdf
+    PI_SPECIFICATION_VERSION = 0X0001000A
+    ENTRY_POINT = SwSmiEntryPoint
+
+[Sources]
+    OemSwSmi.c
+    
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiBootServicesTableLib
+    UefiDriverEntryPoint
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    
+[Protocols]
+    gEfiSmmSwDispatch2ProtocolGuid
+[Depex]
+    #gEfiSmmBase2ProtocolGuid
+    gEfiSmmSwDispatch2ProtocolGuid
+    

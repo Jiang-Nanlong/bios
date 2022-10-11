@@ -1,0 +1,24 @@
+TOKEN
+    Name  = "OemTest3_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemTest3 support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+PATH
+    Name  = "OEM_TEST_DIR"
+End
+
+ELINK
+    Name  = "$(OEM_TEST_DIR)/OemTest3.sd"
+    Parent  = "SETUP_DEFINITIONS"
+    InvokeOrder = AfterParent
+End
+
+ELINK
+    Name  = "$(OEM_TEST_DIR)/OemTest3.uni"
+    Parent  = "SetupStringFiles"
+    InvokeOrder = AfterParent
+End

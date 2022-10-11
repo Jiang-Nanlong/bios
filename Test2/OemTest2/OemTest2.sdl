@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemTest2_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemTest2 support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemTest2"
+    File  = "OemTest2.inf"
+    Package  = "OemPkg"
+    ModuleTypes = "UEFI_APPLICATION"
+    Token = "OemTest2_INF_SUPPORT" "=" "1"
+End
+

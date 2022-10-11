@@ -1,0 +1,11 @@
+<component>
+    name = "OemAcpi"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemAcpi\"
+    RefName = "OemAcpi"
+[INF]
+"OemAcpi.inf"
+[files]
+"OemAcpi.sdl"	
+"OemAcpi.asl"	
+<endComponent>

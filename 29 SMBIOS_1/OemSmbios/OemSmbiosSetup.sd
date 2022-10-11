@@ -1,0 +1,67 @@
+//***********************************************************************
+//*                                                                     *
+//*   Copyright (c) 1985-2019, American Megatrends International LLC.   *
+//*                                                                     *
+//*      All rights reserved. Subject to AMI licensing agreement.       *
+//*                                                                     *
+//***********************************************************************
+
+#ifdef SETUP_DATA_DEFINITION
+// Put NVRAM data definitions here.
+// For example: UINT8 Data1;
+// These definitions will be converted by the build process
+// to a definitions of SETUP_DATA fields.
+#endif
+
+//Select Top level menu itmem (forset) for you pages
+#ifdef ADVANCED_FORM_SET 
+
+    #ifdef FORM_SET_GOTO
+        goto OEM_FORM_ADVANCED_ID,
+            prompt = STRING_TOKEN(STR_OEM_EXTRA_OPTIONS_FORM_TITLE),
+            help = STRING_TOKEN(STR_OEM_EXTRA_OPTIONS_FORM_TITLE_HELP);
+    #endif
+    
+    #ifdef FORM_SET_FORM
+    
+    form formid = AUTO_ID(OEM_FORM_ADVANCED_ID),
+        title   = STRING_TOKEN (STR_OEM_EXTRA_OPTIONS_FORM_TITLE);
+            
+        SUBTITLE(STRING_TOKEN(STR_OEM_SUBTITLE))
+        SEPARATOR
+        
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT1),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE1);
+            
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT2),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE2);
+            
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT3),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE3);
+            
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT4),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE4);
+            
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT5),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE5);
+            
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT6),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE6);
+            
+    endform;
+                 
+    #endif //End of FORM_SET_FORM
+
+#endif// End of ADVANCED_FORM_SET

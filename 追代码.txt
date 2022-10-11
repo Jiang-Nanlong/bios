@@ -1,0 +1,917 @@
+SEC:
+
+ReSetVec.asm16
+		_ModuleEntryPoint()
+Flat32.asm
+		--------------------->LegacyBiosWarmStart:
+		|
+		|
+		|---------------------->NotWarmStart:
+							//protected 16bit -> 32bit
+							VeryEarlyMicrocodeUpdate
+							SecPlatformInit
+							SecCarInit
+							EstablishStack
+							CallPeiCoreEntryPoint
+							SecStartup    (SecMain.c)
+									ProcessLibraryConstructorList            //Process all libraries constructor function linked to SecCore
+									InitializeFloatingPointUnits                   //Initialize floating point operating environment to be compliant with UEFI spec
+									InitializeCpuExceptionHandlers             //Setup the default exception handlers
+									InitializeDebugAgent                                //Initialize Debug Agent to support source level debug in SEC/PEI phases before memory ready
+									SecStartupPhase2                                     //设置堆栈，初始化临时内存
+											FindAndReportEntryPoints          //Find Pei Core entry point. It will report SEC and Pei Core debug information if remote debug is enabled
+													FindImageBase        //Find SEC Core and PEI Core image base
+													ZeroMem
+													PeCoffLoaderRelocateImageExtraAction        //Report SEC/PEI Core debug information when remote debug is enabled
+													PeCoffLoaderGetEntryPoint          //Find PEI Core entry point
+									SecElinkCalls                //调用可以来自任何模块的SEC-ELINK调用
+									SecPlatformMain             //Perform platform specific initialization before entering PeiCore
+									(*PeiCoreEntryPoint) (SecCoreData, PpiList)               //Transfer the control to the PEI core
+													
+							
+PEI:							
+	
+							
+PeiCore
+		 //first entry into the PEI Core before memory is available
+		ZeroMem
+		CopyMem
+		
+		//Not first,memory is available to PEI Core
+		if (OldCoreData->ShadowedPeiCore == NULL)                      //Memory is available to the PEI Core.  See if the PEI Core has been shadowed to memory yet.
+				//Fix up the PeiCore's private data
+				SetPeiServicesTablePointer                     //Fix up for PeiService's address
+				ProcessLibraryConstructorList                 //Initialize libraries that the PEI Core is linked against
+				//Update HandOffHob for new installed permanent memory
+				ConvertMemoryAllocationHobs                       //We need convert MemoryBaseAddress in memory allocation HOBs
+				ConvertPpiPointers                                            //We need convert the PPI descriptor's pointer
+						ConvertSinglePpiPointer            //Convert normal PPIs          Convert Callback Notification PPIs      Convert Dispatch Notification PPIs
+				ShadowPeiCore                        // Shadow PEI Core
+				OldCoreData->ShadowedPeiCore (SecCoreData, PpiList, OldCoreData)              //PEI Core has now been shadowed to memory.  Restart PEI Core in memory.
+		CopyMem                        //Memory is available to the PEI Core and the PEI Core has been shadowed to memory.
+		
+		SetPeiServicesTablePointer                     //Save PeiServicePointer so that it can be retrieved anywhere.
+		ProcessLibraryConstructorList                 //Initialize libraries that the PEI Core is linked against
+		InitializeMemoryServices                            //Initialize PEI Core Services
+				PeiCoreBuildHobHandoffInfoTable        //  Builds a Handoff Information Table HOB
+		InitializeSecurityServices                            //Complete PEI Core Service initialization
+		InitializeDispatcherData
+		InitializeImageServices
+		
+		 //first entry into the PEI Core before memory is available
+		//If SEC provided the PpiList, process it.
+		ProcessPpiListFromSec                         //Process PpiList from SEC phase.
+		
+		//Not first
+		PeiServicesLocatePpi (                          //Try to locate Temporary RAM Done Ppi.
+		               &gEfiTemporaryRamDonePpiGuid,
+		               0,
+		               NULL,
+		               (VOID**)&TemporaryRamDonePpi
+		               );
+		TemporaryRamDonePpi->TemporaryRamDone                  //Disable the use of Temporary RAM after the transition from Temporary RAM to Permanent RAM is complete.
+		PeiServicesInstallPpi                         //Alert any listeners that there is permanent memory available
+		ProcessDispatchNotifyList              //Process the Notify list and dispatch any notifies for the Memory Discovered PPI
+		
+		//first entry into the PEI Core before memory is available
+		ProcessPeiCoreInitializeHooks
+		
+		//Not first
+		ProcessPeiCoreMemoryInstalledHooks
+		
+		PeiDispatcher                  //Call PEIM dispatcher
+				If(real memory is available)
+						//PEIM_STATE_REGISTER_FOR_SHADOW to PEIM_STATE_DONE
+						PeiLoadImage           //Routine to load image file for subsequent execution by LoadFile Ppi.
+								PeiServicesLocatePpi
+										GetPeiServicesTablePointer
+								LoadFile->LoadFile
+								RelocationIsStrip            //The shadowed PEIM must be relocatable
+						PERF_START_IMAGE_BEGIN
+								LogPerformanceMeasurement
+						PeimEntryPoint(PeimFileHandle, (const EFI_PEI_SERVICES **) &Private->Ps)
+						PERF_START_IMAGE_END
+								LogPerformanceMeasurement
+				//循环 发现未调度的PEIM/FV
+						FindNextCoreFvHandle         //Get instance of PEI_CORE_FV_HANDLE for next volume according to given index.
+								GetFirstHob           //Loop to search the wanted FirmwareVolume which supports FFS
+								PeiServicesInstallFvInfoPpi            //If the Fv in FvHob has not been installed into PeiCore's FV database and has not been cached into PeiCore's Unknown 
+								                                                               FV database, install a new FvInfoPpi for it then PeiCore will dispatch it in callback of FvInfoPpi.
+								GetNextHob
+						DiscoverPeimsAndOrderWithApriori                   //reorder all PEIMs to ensure the PEIMs in Apriori file to get dispatch at first
+						PeiCheckAndSwitchStack                            //检查memory是否初始化完毕，并切换到memory
+						ProcessDispatchNotifyList                           //Process the Notify list and dispatch any notifies for newly installed PPIs.
+						PeiCheckAndSwitchStack                              //切换到memory
+								MigrateMemoryPages               //把cache中的数据切换到memory
+								PeiCore (SecCoreData, NULL, Private)          //把堆栈中的PEI数据转移到memory
+				
+		TempPtr.DxeIpl->Entry
+							
+							
+
+DXE:
+DxeMain
+		//Setup the default exception handlers
+		GetNextGuidHob
+		InitializeCpuExceptionHandlersEx                       //Initializes all CPU exceptions entries with optional extra initializations.
+				InitializeCpuExceptionHandlers                 //Initializes all CPU exceptions entries and provides the default exception handlers
+		InitializeDebugAgent                                 //Initialize Debug Agent to support source level debug in DXE phase
+		CoreInitializeMemoryServices                 //Initialize Memory Services
+				CoreInitializePool                   //Initialize the spin locks and maps in the memory services
+				GetFirstGuidHob
+				CoreAddMemoryDescriptor         // Declare the very first memory region, so the EFI Memory Services are available
+		MemoryProfileInit                 //initialize memory profile
+				GetMemoryProfileContext
+				RegisterDxeCore                           //register DXE core to memory profile
+						EfiInitializeFwVolDevicepathNode          //Initialize a Firmware Volume (FV) Media Device Path node
+						SetDevicePathEndNode
+						BuildDriverInfo
+		AllocateRuntimeCopyPool                            //Allocate the EFI System Table and EFI Runtime Service Table from EfiRuntimeServicesData
+		                                                                              Use the templates to initialize the contents of the EFI System Table and EFI Runtime Services Table
+		InitAmiLib                            //This is required to be able to use other AmiDxeLib functions
+		CoreInitializeImageServices                      //Start the Image Services
+				CompareGuid
+				CoreInstallProtocolInterface                  //Install the protocol interfaces for this image
+				ProtectUefiImage                                    //Protect UEFI PE/COFF image
+		CoreInitializeGcdServices                                             //Initialize the Global Coherency Domain Services
+				GetFirstHob                          //Get the number of address lines in the I/O and Memory space for the CPU
+				AllocateCopyPool                //Initialize the GCD Memory Space Map
+				InsertHeadList
+				CoreDumpGcdMemorySpaceMap
+						CoreGetMemorySpaceMap          //Returns a map of the memory resources in the global coherency domain of the processor
+								CoreAcquireGcdMemoryLock                    //Take the lock, for entering the loop with the lock held.
+										CoreAcquireLock
+								//while TRUE
+								CoreCountGcdMapEntry                          ///Count descriptors
+								BuildMemoryDescriptor
+								CoreReleaseGcdMemoryLock              //Release the lock before memory allocation
+								AllocatePool                                            //Allocate memory to store the MemorySpaceMap
+								CoreAcquireGcdMemoryLock             //Re-acquire the lock, for the next iteration
+								  
+								CoreReleaseGcdMemoryLock                   //We exited the loop with the lock held, release it
+				AllocateCopyPool                   //Initialize the GCD I/O Space Map
+				InsertHeadList
+				CoreDumpGcdIoSpaceMap                          //Dump the entire contents if the GCD I/O Space Map
+						CoreGetIoSpaceMap                     //Returns a map of the I/O resources in the global coherency domain of the processor
+								CoreAcquireGcdIoLock
+										CoreAcquireLock
+								CoreCountGcdMapEntry              //Count the number of descriptors
+								AllocatePool                                    //Allocate the IoSpaceMap
+								BuildIoDescriptor                           //Build a IO descriptor according to an entry
+				//Walk the HOB list and add all resource descriptors to the GCD
+				CoreValidateResourceDescriptorHobAttributes                   //Validate the Resource HOB Attributes
+				CoreConvertResourceDescriptorHobAttributesToCapabilities                        //Convert the Resource HOB Attributes to an EFI Memory Capabilities mask
+				CoreInternalAddMemorySpace                           //Add a segment of memory to GCD map
+				CoreAddIoSpace                                                     //Adds reserved I/O or I/O resources to the global coherency domain of the processor
+			           
+			           //Allocate first memory region from the GCD by the DXE core
+				CoreGetMemorySpaceDescriptor                        //Retrieves the descriptor for a memory region containing a specified address
+						CoreAcquireGcdMemoryLock
+						CoreSearchGcdMapEntry                      //Search for the list of descriptors that contain BaseAddress
+						BuildMemoryDescriptor
+						CoreReleaseGcdMemoryLock
+				CoreAllocateMemorySpace
+				
+				//Walk the HOB list and allocate all memory space that is consumed by memory allocation HOBs,
+				   and Firmware Volume HOBs.  Also update the EFI Memory Map with the memory allocation HOBs.
+				CoreGetMemorySpaceDescriptor                                //Retrieves the descriptor for a memory region containing a specified address
+				CoreAllocateMemorySpace
+				CoreAddMemoryDescriptor                                          //Called to initialize the memory map and add descriptors to the current descriptor list
+						CoreAcquireMemoryLock
+						CoreAddRange                            //Adds a ranges to the memory map
+								CoreNotifySignalList
+								RemoveMemoryMapEntry
+						CoreFreeMemoryMapStack
+						CoreReleaseMemoryLock
+						ApplyMemoryProtectionPolicy                //Manage memory permission attributes on a memory range, according to the configured DXE memory protection policy
+						CoreLoadingFixedAddressHook                //allocate memory with Runtime code & Boot time code type
+						CoreAllocatePages                                      //Allocate pages for the current memory type from the top of available memory
+								CoreInternalAllocatePages
+								CoreUpdateProfile                       //Update memory profile information
+								InstallMemoryAttributesTableOnMemoryAllocation           //Install MemoryAttributesTable on memory allocation
+								ApplyMemoryProtectionPolicy
+				CoreAllocateMemorySpace
+				CoreGetMemorySpaceMap                                          //Add and allocate the remaining unallocated system memory to the memory services
+				CoreAddMemoryDescriptor
+				CoreAllocateMemorySpace
+				AllocateCopyPool                                       //Relocate HOB List to an allocated pool buffer
+				PageAlignAddress                                      //Add and allocate the memory space that covers HOB List to the memory services after HOB List relocation
+				PageAlignLength
+				CoreAddMemoryDescriptor
+				CoreAllocateMemorySpace
+						CoreAllocateSpace
+				CoreFreePool
+
+		ProcessLibraryConstructorList                             // Call constructor for all libraries
+		
+		// Report DXE Core image information to the PE/COFF Extra Action Library
+		
+		ZeroMem                                                                //Clear the Memory.
+				InternalMemZeroMem                         //Set Buffer to 0 for Size bytes.
+						InternalMemSetMem                   //Fills a target buffer with a byte value, and returns the target buffer.             
+		PeCoffLoaderGetPdbPointer                             //Returns a pointer to the PDB file name for a PE/COFF image that has been   loaded into system memory with the PE/COFF Loader Library functions.
+		
+		
+		PeCoffGetSizeOfHeaders                                   // Returns the size of the PE/COFF headers
+		PeCoffLoaderGetEntryPoint                              //Retrieves and returns a pointer to the entry point to a PE/COFF image that has been loaded   into system memory with the PE/COFF Loader Library functions.
+		
+		PeCoffLoaderRelocateImageExtraAction        //  Performs additional actions after a PE/COFF image has been loaded and relocated.
+		CoreInstallConfigurationTable                          //Install the DXE Services Table into the EFI System Tables's Configuration Table
+				CompareGuid
+				Table != NULL                                //A match was found
+					 CoreNotifySignalList         //Signal Configuration Table change
+					 CopyMem                          //Copy over deleted entry
+				Table == NULL
+					AllocateRuntimePool       //Allocate a table with one additional entry.
+					CopyMem                          //Copy the old table to the new table.
+					CoreFreePool                    //Fill in the new entry
+				CalculateEfiHdrCrc                      //Fix up the CRC-32 in the EFI System Table
+				CoreNotifySignalList                   //Signal Configuration Table change
+		CoreInstallConfigurationTable                          //Install the HOB List into the EFI System Tables's Configuration Table
+		CoreInstallConfigurationTable                          //Install Memory Type Information Table into the EFI System Tables's Configuration Table
+		CoreInstallConfigurationTable                          //install Load moduels at fixed address Configuration Table
+		CoreInitializeDebugImageInfoTable                //Create the aligned system table pointer structure that is used by external debuggers to locate the system table
+				// Allocate 4M aligned page for the structure and fill in the data.
+				 // Ideally we would update the CRC now as well, but the service may not yet be available.
+				CoreAllocatePages                        //Attempt to allocate memory below PcdMaxEfiSystemTablePointerAddress
+				CoreAllocatePages                        //If the initial memory allocation fails, then reattempt allocation as close to the top of memory as feasible.
+				CoreFreePages
+				CoreFreePages
+				CoreInstallConfigurationTable   //Install the EFI_SYSTEM_TABLE_POINTER structure in the EFI System Configuration Table
+				
+		CoreNewDebugImageInfoEntry                      //install debug image info configuration table
+		
+		// Initialize the Event Services
+		CoreInitializeEventServices                             //Initializes "event" support.
+				CoreInitializeTimer                      //Initializes timer support
+				CoreCreateEventEx
+		MemoryProfileInstallProtocol                        //Install memory profile protocol.
+				CoreInstallMultipleProtocolInterfaces
+		CoreInitializePropertiesTable                         //Initialize PropertiesTable support.
+				CreateEventEx
+		CoreInitializeMemoryAttributesTable          //Initialize MemoryAttrubutesTable support.
+				CoreCreateEventInternal           // Construct the table at ReadyToBoot.
+				CoreCreateEventInternal          //Construct the initial table at EndOfDxe, then SMM can consume this information.
+		CoreInitializeMemoryProtection                   //Initialize Memory Protection support.
+				InitializeListHead                        //Initializes the head node of a doubly-linked list, and returns the pointer to the head node of the doubly-linked list.
+				CoreCreateEvent
+				CoreRegisterProtocolNotify     //Register for protocol notifactions on this event
+				CoreCreateEventEx                   //Register a callback to disable NULL pointer detection at EndOfDxe
+				
+		//Get persisted vector hand-off info from GUIDeed HOB again due to HobStart may be updated,
+		// and install configuration table
+		GetNextGuidHob
+		AllocateCopyPool
+		CoreInstallConfigurationTable                          //Boot Service called to add, modify, or remove a system configuration table from   the EFI System Table.
+		
+		// Get the Protocols that were passed in from PEI to DXE through GUIDed HOBs
+		CoreInstallMultipleProtocolInterfaces
+		
+		//Register for the GUIDs of the Architectural Protocols, so the rest of the
+		// EFI Boot Services and EFI Runtime Services tables can be filled in.
+		// Also register for the GUIDs of optional protocols.
+		CoreNotifyOnProtocolInstallation                   //Creates an events for the Architectural Protocols and the optional protocols that are fired everytime a Protocol of a specific type is installed.
+				CoreNotifyOnProtocolEntryTable            //Creates an event for each entry in a table that is fired everytime a Protocol of a specific type is installed.
+				CoreNotifyOnProtocolEntryTable
+				
+		//Produce Firmware Volume Protocols, one for each FV in the HOB list
+		FwVolBlockDriverInit                                        //This routine consumes FV hobs and produces instances of FW_VOL_BLOCK_PROTOCOL as appropriate.
+				ProduceFVBProtocolOnBuffer         //Produce an FVB protocol for it
+						CoreGetMemorySpaceDescriptor
+								CoreAcquireGcdMemoryLock
+								CoreSearchGcdMapEntry                      //Search for the list of descriptors that contain BaseAddress
+								BuildMemoryDescriptor
+								CoreReleaseGcdMemoryLock
+						AllocateCopyPool                                    //Allocate EFI_FW_VOL_BLOCK_DEVICE
+						CoreInstallMultipleProtocolInterfaces          //Attach FvVolBlock Protocol to new handle
+		FwVolDriverInit                                                 //This routine is the driver initialization entry point
+				EfiCreateProtocolNotifyEvent
+				
+		//Produce the Section Extraction Protocol
+		InitializeSectionExtraction                              //Entry point of the section extraction code
+				ExtractGuidedSectionGetGuidList             //Get custom extract guided section method guid list
+				CoreInstallProtocolInterface                      //Install custom guided extraction protocol
+				
+		//Initialize the DXE Dispatcher
+		CoreInitializeDispatcher
+				EfiCreateProtocolNotifyEvent
+				
+		//Invoke the DXE Dispatcher
+		//Process DxeCoreInitialize eLink
+		ProcessDxeCoreInitializeHooks
+		CoreDispatcher                                              //This is the main Dispatcher for DXE and it exits when there are no more drivers to run.
+				CoreCreateEventEx
+				//Drain the Scheduled Queue
+				CR
+				CoreLoadImage                        //Load the DXE Driver image into memory.
+						IsValidDevicePath               //Verify that device path is sane
+						CoreLoadImageCommon                 //Loads an EFI image into memory and returns a handle to the image.
+								CoreLoadedImageInfo
+								ZeroMem
+								CoreLocateDevicePath
+								CoreLocateDevicePath
+								CoreLocateDevicePath
+								CoreLocateDevicePath
+								CoreLocateDevicePath
+								GetFileBufferByFilePath                        //Get the source file buffer by its device path
+								AppendDevicePath                                 //LoadFile () may cause the device path of the Handle be updated
+								FileAuthentication                                  //Verify File Authentication through the Security2 Architectural Protocol
+								FileAuthenticationState                         //Verify the Authentication Status through the Security Architectural Protocol Only on images that have been read using Firmware Volume protocol.
+								FileAuthenticationState                         //Verify the Authentication Status through the Security Architectural Protocol
+								AllocateZeroPool                                    //Allocate a new image structure
+								CoreInstallProtocolInterfaceNotify     //Install the protocol interfaces for this image don't fire notifications yet
+								CoreLoadPeImage                                  //Load the image.  If EntryPoint is Null, it will not be set.
+								CoreNewDebugImageInfoEntry           //Register the image in the Debug Image Info Table if the attribute is set
+								CoreReinstallProtocolInterface            //Reinstall loaded image protocol to fire any notifications
+								DuplicateDevicePath                              //If DevicePath parameter to the LoadImage() is not NULL, then make a copy of DevicePath, otherwise Loaded Image Device Path Protocol is installed with a NULL interface pointer.
+								CoreInstallProtocolInterface                 //Install Loaded Image Device Path Protocol onto the image handle of a PE/COFE image
+								CoreInstallProtocolInterface                 //Install HII Package List Protocol onto the image handle
+								ProtectUefiImage                                    //ProtectUefiImage
+								CoreFreePool                                           //All done accessing the source file If we allocated the Source buffer, free it
+								CoreUnloadAndCloseImage                  //There was an error.  If there's an Image structure, free it
+				CoreAcquireDispatcherLock
+				RemoveEntryList
+				CoreReleaseDispatcherLock
+				CoreProcessFvImageFile                          //Produce a firmware volume block protocol for FvImage so it gets dispatched from
+				CoreStartImage                                         //  Transfer control to a loaded image's entry point.
+				CoreSignalEvent (DxeDispatchEvent)    //Now DXE Dispatcher finished one round of dispatch, signal an event group so that SMM Dispatcher get chance to dispatch SMM Drivers which depend on UEFI protocols
+				
+				//If Section Extraction Protocol did not let the Depex be read before retry the read
+				CoreGetDepexSectionAndPreProccess
+				CoreInsertOnScheduledQueueWhileProcessingBeforeAndAfter               //Insert InsertedDriverEntry onto the mScheduledQueue.
+				
+				CoreCloseEvent (DxeDispatchEvent)    //Close DXE dispatch Event
+				
+		DEBUG_CODE_BEGIN
+		CoreDisplayMissingArchProtocols                    //Display Architectural protocols that were not loaded if this is DEBUG build
+		DEBUG_CODE_END
+		DEBUG_CODE_BEGIN
+		CoreDisplayDiscoveredNotDispatched            //Display any drivers that were not dispatched because dependency expression evaluated to false if this is a debug build
+				DEBUG_CODE_BEGIN
+				GetDriverEntryName 
+						DriverEntry->Fv->ReadSection                // Read driver name from UI section
+						AsciiSPrint
+				DEBUG_CODE_END
+		DEBUG_CODE_END
+		CoreAllEfiServicesAvailable                                //Assert if the Architectural Protocols are not present
+		REPORT_STATUS_CODE                                      //Report Status code that some Architectural Protocols are not present
+		REPORT_STATUS_CODE                                      //Report Status code before transfer control to BDS
+		gBds->Entry (gBds)                                              // Transfer control to the BDS Architectural Protocol
+		CpuDeadLoop                                                       //CpuDeadLoop
+				//Update the driver state to reflect that it's been loaded
+				CoreAcquireDispatcherLock  
+				RemoveEntryList
+				CoreReleaseDispatcherLock
+				CoreProcessFvImageFile         //Produce a firmware volume block protocol for FvImage so it gets dispatched from
+				CoreStartImage
+				
+				//Now DXE Dispatcher finished one round of dispatch, signal an event group
+				// so that SMM Dispatcher get chance to dispatch SMM Drivers which depend
+				// on UEFI protocols
+				CoreSignalEvent
+				
+				//Search DriverList for items to place on Scheduled Queue
+				CR
+				//If Section Extraction Protocol did not let the Depex be read before retry the read
+				CoreGetDepexSectionAndPreProccess
+				CoreInsertOnScheduledQueueWhileProcessingBeforeAndAfter
+				GetDriverEntryName
+				CoreCloseEvent                         //Close DXE dispatch Event
+
+
+BDS:
+BdsInit                    //BDS Image entry point. Installs the BDS Arch protocol and updates the system table's firmware vendor information
+		InitAmiLib
+		SetSystemTableFirmwareInfo                //Update the System Table's FirmwareVendor field with the correct information
+				pBS->AllocatePool                    Initialize System Table Fields
+				Wcscpy
+		pBS->InstallMultipleProtocolInterfaces(
+		        &Handle,
+		        &gEfiBdsArchProtocolGuid, &BDS,                      //进入bdsentry
+		        &gAmiBdsConnectPolicyProtocolGuid, &BdsConnectPolicy,
+		        &gAmiResetRequestProtocolGuid, &ResetRequest,
+		        NULL
+		    );
+		
+BdsEntry                //Protocol used to enter TSE from the DXE core
+		InitSystemVariable                               //Lang & LangCodes are initialized by Setup driver
+		RegisterProtocolCallback
+				SaveFpdtDataOnLegacyBoot
+						AmiFillFpdt (FillOsLoaderStartImageStart);                // Fill OsLoaderStartImageStart field in FPDT
+		pBS->LocateHandleBuffer                 //Initialize Global Variables
+		GetBootMode                    //returns current boot mode
+				GetEfiConfigurationTable                //Get Boot Mode
+		AmiBdsConnectPolicySetDeviceClassPolicy           //Disable OpROM
+		pBS->LocateProtocol(&gAmiPauseProtocolGuid, NULL, (VOID **)&AmiPause);
+		BdsControlFlowFunctions
+				BeforeBdsFlow           [FastBoot.c]               //This procedure is executed before elink BDS_CONTROL_FLOW for getting all system handles
+						gBS->LocateHandleBuffer
+				
+				SignalConnectDriversEvent               [Bds.c]               //Signal the Connect Drivers protocol event
+						SignalProtocolEvent(&gAmiBdsConnectDriversProtocolGuid)
+								pBS->InstallProtocolInterface
+								pBS->UninstallProtocolInterface
+				
+				AmiGopPolicyProtocolInsatll                [AmiGopPolicy.c]                 //Installs AmiGopPolicy related protocols
+						pBS->InstallMultipleProtocolInterfaces(
+						         &Handle,
+						         &gEfiEdidOverrideProtocolGuid,
+						         &EfiEdidOverrideProtocol,
+						         NULL );
+						
+				ConnectRootBridgeHandlesBeforeEndOfDxe                  [Bds.c]               //Locate all RootBridgeIo protocols in the system and connect those first
+						ConnectRootBridgeHandles                                                     //Locate all RootBridgeIo protocols in the system and connect those first. This must be done to perform PCI enumeration (on systems that support it)
+								pBS->LocateHandleBuffer(                                 //Enumerate PCI Bus and Create handles for all PCI devices
+								        ByProtocol,&gEfiPciRootBridgeIoProtocolGuid, NULL,
+								        &Size, &Handle
+								    );
+								pBS->ConnectController
+								pBS->FreePool
+								
+				ConnectSio                      [SioBdsPlugin.c]                            //Connect SIO handle
+						GetPciHandlesByClass(                                            //Get a list of all PCI to ISA Bridges
+						        PCI_CLASS_BRIDGE, PCI_CLASS_BRIDGE_ISA, &Number, &Handle
+						    );
+						gBS->ConnectController
+						gBS->FreePool
+						
+				StartUsbControllersEx                                 [DxeAmiUsbBdsLib.c]                              //Function that non-recursively connects USB controllers
+						CollectUsbControllers                           //This function collects USB controllers
+								SetMem
+								CollectUsbControllersEx                    //This function allocates XHCI memory buffers
+								CollectUsbXhciControllers                //This function allocates XHCI memory buffers
+								CollectUsbEhciControllers                //Collect USB EHCI controllers and allocate ISOCTRANSFER buffers
+						ConnectUsbControllersEx
+						RegisterUsbSmi                            //Register USB SMI before end of DXE
+				
+				SignalEndOfDxe                          [Bds.c]                         //Signal End of DXE and event and install DXE SMM Ready to Lock protocol
+						SignalEndOfDxeEvent                                    //Create and signal the event for the End of DXE event to allow items in the system to perform the necessary security lock down of their interfaces
+								pBS->CreateEventEx(
+								        EVT_NOTIFY_SIGNAL, TPL_CALLBACK, DummyEndOfDxeEventCallback,
+								        NULL, &gEfiEndOfDxeEventGroupGuid, &Event
+								    );
+								pBS->SignalEvent
+								pBS->CloseEvent
+						SignalProtocolEvent                                      //Internal function that installs/uninstall protocol with a specified GUID and NULL interface. Such protocols can be used as event signaling mechanism.
+								pBS->InstallProtocolInterface
+								pBS->UninstallProtocolInterface
+						pBS->LocateHandleBuffer (                         //Initialize FvHandles array. The array is used by the FwLoadFile function.
+						        ByProtocol, &gEfiFirmwareVolume2ProtocolGuid,
+						        NULL,  &NumberOfFvHandles, &FvHandles
+						    );
+						
+				ConnectRootBridgeHandles                 [Bds.c]                            //Locate all RootBridgeIo protocols in the system and connect those first
+						pBS->LocateHandleBuffer(                                     //Enumerate PCI Bus and Create handles for all PCI devices
+						        ByProtocol,&gEfiPciRootBridgeIoProtocolGuid, NULL,
+						        &Size, &Handle
+						    );
+						pBS->ConnectController(Handle[i],NULL,NULL,FALSE)
+						pBS->FreePool
+						
+				RegisterMemoryTypeInformationUpdateCallback                          [Bds.c]                   //Register callback events that will be triggered to call SaveMemoryTypeInformation
+				                                                                                                                                                     for the system to save the memory usage information and to process pending reset request
+						RegisterProtocolCallback(
+						        &BeforeBootProtocolGuid,
+						        ProceedToBookCallback,
+						        NULL, &Event, &Registration
+						    );
+						RegisterProtocolCallback(
+						        &BeforeLegacyBootProtocolGuid,
+						        ProceedToBookCallback,
+						        NULL, &Event, &Registration
+						    );
+						CreateLegacyBootEvent(TPL_CALLBACK, ProceedToBookCallback, NULL, &Event)
+						pBS->CreateEvent(
+						        EVT_SIGNAL_EXIT_BOOT_SERVICES,TPL_CALLBACK,
+						        ProceedToBookCallback, NULL, &Event
+						    );
+						
+				FastBootHook                     [BdsBoard.c]                          //Helper function which calls the IsFastBoot() function to check if the system in in the fast boot path. If it returns TRUE, then the FastBoot function is called.
+						FastBoot                      //FastBoot entry point
+								gBS->LocateProtocol(&FastBootTseGuid, NULL, (VOID**)&gFastBootTseProtocol)
+								ReturnToNormalBoot                            //if we're here - fast boot failed
+				
+				/* Connect Console Devices */ /* Connect ConOut Devices */
+				
+				ReportConnectConOutProgressCode                       [Bds.c]                      //Report the Con Out Started progress code
+						PROGRESS_CODE(DXE_CON_OUT_CONNECT) = IoWrite8 (0x80, DXE_CON_OUT_CONNECT)
+						
+				SetBrightnessLevelDuringPost                        [SetBrightnessLevelDuringPostLib.c]                    //SetBrightnessLevelDuringPost func
+						gBS->CreateEvent (
+						                  EVT_NOTIFY_SIGNAL,
+						                  TPL_NOTIFY,
+						                  SetBrightnessLevelCallback,
+						                  NULL,
+						                  &Event
+						                  );
+						gBS->RegisterProtocolNotify (
+						                  &gGopDisplayBrightnessProtocolGuid,
+						                  Event,
+						                  &Registration
+						                  );
+						
+				ConnectAmiGopPolicyConOut                      [AmiGopPolicy.c]                  //Connect AmiGopPolicyConOut Device Path
+						GetEfiVariable (
+						             L"AmiGopOutputDp",
+						             &gAmiGopPolicyVariableGuid,
+						             NULL,
+						             &VariableSize,
+						             &GopDevicePath);
+						ConnectDevicePath(GopDevicePath)
+						pBS->FreePool(GopDevicePath)
+						
+				ConnectVgaConOut                       [Bds.c]                    //Connect possible console out devices. Do this by filtering through
+				                                                                                              the PCI I/O Protocol list and calling connect device path for Display devices
+						pBS->LocateHandleBuffer(                     //Get a list of all PCI devices
+						        ByProtocol,&gEfiPciIoProtocolGuid, NULL, &Number, &Handle
+						    );
+						pBS->HandleProtocol(Handle[i],&gEfiPciIoProtocolGuid,(VOID**)&PciIo)
+						PciIo->Pci.Read(PciIo, EfiPciIoWidthUint8, 0xB, 1, &PciClass)
+						pBS->HandleProtocol(Handle[i],&gEfiDevicePathProtocolGuid,(VOID**)&Dp)
+						PciIo->Attributes(                                        //We found Display adapter Check if this is on-board device(EFI_PCI_IO_ATTRIBUTE_EMBEDDED_DEVICE is set).
+						            PciIo, EfiPciIoAttributeOperationGet, 0, &PciAttributes
+						        );
+						AddDevicePath(OnBoard,Dp)
+						pBS->FreePool(Handle)
+						AddDevicePath(OffBoard,OnBoard)         //Off-board has a higher priority
+						ConnectDevicePath(OffBoard)
+						pBS->FreePool(OffBoard)
+						
+				ConnectConOutVariable                    [Bds.c]                    //Wrapper function that calls ConnecConsoleVariable for the L"ConOut" devices
+						ConnecConsoleVariable(L"ConOut")           //Get the ConsoleOut NVRAM variables and attempt to connect those device paths
+								ConnectDevicePath(ConPath)           //Connect all active console devices
+								pBS->FreePool(ConPath)
+								
+				InstallConOutStartedProtocol                 [Bds.c]                     //Wrapper function that calls the InstallConsoleStartedProtocol for the "ConOutDev" variables
+						InstallConsoleStartedProtocol(L"ConOutDev", &ConOutStartedProtocolGuid)            //Install the console out started protocol to signal that consoles are available
+								InstallProtocolInterface(
+								        &TheImageHandle, ProtocolGuid, EFI_NATIVE_INTERFACE, NULL
+								    );
+								
+				/* Connect ConIn Devices */
+				
+				ReportConnectConInProgressCode               [Bds.c]                 //Function which reports the Con IN Connect progress code to the system
+						PROGRESS_CODE(DXE_CON_IN_CONNECT) = IoWrite8 (0x80, DXE_CON_IN_CONNECT)
+						
+				ConnectPs2ConIn                [Bds.c]                 //Function that attempts to connect the PS2 console in devices
+						GetPciHandlesByClass(              //Get a list of all PCI to ISA Bridges
+						        PCI_CL_BRIDGE, PCI_CL_BRIDGE_SCL_ISA, &Number, &Handle
+						    );
+						pBS->HandleProtocol(Handle[i],&gEfiDevicePathProtocolGuid,(VOID**)&Dp)
+						pBS->ConnectController(Handle[i],NULL,NULL,FALSE)
+						DPAddNode(Dp, &Ps2Kbd.Header)
+						ConnectDevicePath(ChildDp)
+						pBS->FreePool(ChildDp)
+						DPAddNode(Dp, &Ps2Mouse.Header)
+						ConnectDevicePath(ChildDp);
+						pBS->FreePool(ChildDp)
+				
+				ConnectUsbConInEx               [DxeAmiUsbBdsLib.c]                 //Function that attempts to connect the USB console in devices
+						ConnectUsbControllersEx                         //Function that connects USB controllers
+								GetPciHandleByClass (PCI_CLASS_SERIAL, PCI_CLASS_SERIAL_USB, &Number, &Handle)              //Get a list of all USB Controllers
+								gBS->ConnectController (Handle[Index], NULL, NULL, Recursive)
+								gBS->FreePool(Handle)
+								
+				ConnectConInVariable                            [Bds.c]                             //Wrapper functions that calls the ConnecConsolevariable for the ConIn devices
+						ConnecConsoleVariable(L"ConIn")
+								ConnectDevicePath(ConPath)                 //Connect all active console devices
+								pBS->FreePool(ConPath)
+								
+				InstallConInStartedProtocol                       [Bds.c]                       //Wrapper function that calls the InstallConsoleStarted protocol for the ConInDev and ConsoleINStartedProtocol
+						InstallConsoleStartedProtocol(L"ConInDev", &ConInStartedProtocolGuid)                 //Install the console out started protocol to signal that consoles are available
+								pBS->InstallProtocolInterface(
+								        &TheImageHandle, ProtocolGuid, EFI_NATIVE_INTERFACE, NULL
+								    )
+				
+				/* Full System Initialization */
+				
+				ConnectEverything                       [Bds.c]                     //Attempt to connect every handle in the system recursively by calling connect controller for each handle
+						pBS->ConnectController(RootHandles[i],NULL,NULL,TRUE)
+						DPAddNode
+						pBS->LocateDevicePath(&gEfiDevicePathProtocolGuid, &TmpDp, &Handle)
+						pBS->HandleProtocol(Handle,&gEfiBlockIoProtocolGuid,&pDummy)
+						pBS->DisconnectController(LpcHandle,NULL,Handle);
+						pBS->FreePool(ChildDp);
+						
+				RunDrivers                    [Bds.c]                    //Run all the DriverXXXX items that are stored in NVRAM. After running the drivers,  disconnect all devices, 
+											then connected all devices again. Do this to allow any of the newly run drivers the chance to bind onto all the devices
+						GetEfiVariable(L"DriverOrder", &gEfiGlobalVariableGuid, NULL, &DriverOrderSize, (VOID**)&DriverOrder)            //Init Driver Order buffers
+						GetEfiVariable(DriverStr, &gEfiGlobalVariableGuid, NULL, &Size, (VOID**)&DriverOption)                         //Get Driver Option
+						pBS->LoadImage(
+						            FALSE, TheImageHandle, DevicePath, NULL, 0, &Handle
+						        );
+						pBS->HandleProtocol(
+						            Handle,&gEfiLoadedImageProtocolGuid,(VOID**)&Image
+						        );
+						pBS->FreePool
+						DisconnectEverything()
+						ConnectEverything()
+						
+				InitConVars                           [Bds.c]                          //Function that initializes the ConOut, ConIn, ConOutDev and ConInDev NVRAM variables
+						InstallConsoleStartedProtocol(NULL, &ConOutStartedProtocolGuid)
+						InstallConsoleStartedProtocol(NULL, &ConInStartedProtocolGuid)
+						pRS->SetVariable(                                //Set ConVar[i] equal to the ConDev[i]
+						            ConVar[i], &gEfiGlobalVariableGuid,
+						            EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+						            Size, ConPath
+						        );
+						GetEfiVariable(                                      //Let's take care about ErrOut
+						        L"ErrOutDev", &gEfiGlobalVariableGuid, NULL, &Size, (VOID**)&ConPath
+						    );
+						pRS->SetVariable(                                //Set ConErrDev equal to the ConOutDev
+						                L"ErrOutDev", &gEfiGlobalVariableGuid,
+						                EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+						                Size, ConPath
+						  );
+						pRS->SetVariable(                                      //Set ErrOut
+						            L"ErrOut", &gEfiGlobalVariableGuid,
+						            EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+						            Size, ConPath
+						        );
+						pBS->FreePool(ConPath)
+						
+				IdeConnectControllerAfterConnectEverthing                            [HddSecurityBdsCall.c]                   //This function will connect the handle's of RAID Controllers and the IDE/AHCI
+				                                                                                                                                                                           Devices( the handle whose DiskIo was not opened by any one.)
+						GetPciHandlesByClass(PCI_CLASS_MASS_STORAGE,
+						                                  PCI_CLASS_MASS_STORAGE_RAID,
+						                                  &NumHandles,
+						                                  &HandleBuffer);
+						pRS->GetVariable(L"RaidDriverBlockingStatus",                           //Connect the handle so that CSM BlockIo Launches RAID Option Rom
+						                                  &gAmiGlobalVariableGuid,
+						                                  NULL,
+						                                  &VarSize,
+						                                  &RaidDriverBlocked )
+						// We have blocked the Raid driver until password verification is done. 
+						// Now we need to un block and connect the Raid driver after HddPassword verification is done 
+						pBS->OpenProtocolInformation(HandleBuffer[Index], 
+						                                                  &gEfiDevicePathProtocolGuid, 
+						                                                  &Entries, 
+						                                                  &Count);
+						pBS->CloseProtocol (HandleBuffer[Index],
+						                                        &gEfiDevicePathProtocolGuid,
+						                                        Entries[Index1].AgentHandle,
+						                                        Entries[Index1].ControllerHandle);
+						pBS->ConnectController(HandleBuffer[Index],NULL,NULL,TRUE)
+					 
+				RunSysPrepApps                        [Bds.c]                       //Run all the SysPrepXXXX items that are stored in NVRAM
+						GetEfiVariable(L"SysPrepOrder", &gEfiGlobalVariableGuid, NULL, &SysPrepOrderSize, (VOID**)&SysPrepOrder)               //Init Driver Order buffers
+						GetEfiVariable(SysPrepStr, &gEfiGlobalVariableGuid, NULL, &Size, (VOID**)&SysPrepOption)                             //Get SysPrerp Option
+						pBS->LoadImage(
+						            FALSE, TheImageHandle, DevicePath, NULL, 0, &Handle
+						        );
+						pBS->HandleProtocol(
+						            Handle,&gEfiLoadedImageProtocolGuid,(VOID**)&Image
+						        );
+						pBS->StartImage(Handle, NULL, NULL)
+						pBS->FreePool(SysPrepOption);
+						pBS->FreePool(SysPrepOrder)
+						
+				ShadowAllLegacyOptionRoms                        [Bds.c]                            //Function to Shadow all the legacy option roms
+						pBS->LocateProtocol(&gEfiLegacyBiosProtocolGuid, NULL, (VOID **)&LegacyBios)
+						LegacyBios->ShadowAllLegacyOproms(LegacyBios)
+						
+				LocateAndInitializePcieSsd                              [AmiPchPcieSsdHook.c]                  //Locate and Initialize a PCIe SSD
+						gBS->LocateProtocol (&gPlatformInfoProtocolGuid, NULL, (VOID **) &PlatformInfo)
+						gBS->LocateHandleBuffer (
+						                  ByProtocol,
+						                  &gEfiPciIoProtocolGuid,
+						                  NULL,
+						                  &HandleCount,
+						                  &HandleBuffer
+						                  );
+						gBS->HandleProtocol (
+						                    HandleBuffer[Index],
+						                    &gEfiPciIoProtocolGuid,
+						                    (VOID *) &PciIo
+						                    );
+						PciIo->GetLocation (PciIo, &Segment, &Bus, &Device, &Function)
+						//RVP10/16 M.2 power GPIO fix, detecting whether Root Port 0x0C/0x10 having device
+						GetPchPcieRpNumber (Device, Function, &RpIndex)
+						PciIo->Pci.Read (
+						                    PciIo,
+						                    EfiPciIoWidthUint16,
+						                    R_PCH_PCIE_LSTS,
+						                    sizeof (UINT16),
+						                    &LSTS
+						                    );
+						PciIo->Pci.Read (
+						                    PciIo,
+						                    EfiPciIoWidthUint8,
+						                    0,
+						                    sizeof (PciData),
+						                    &PciData
+						                    );
+						gBS->ConnectController (HandleBuffer[Index], NULL, NULL, TRUE)
+						gBS->FreePool (HandleBuffer)
+						gRT->GetVariable (
+						                    L"HaloMd2Variable",
+						                    &gHaloMd2VariableGuid,
+						                    NULL,
+						                    &DataSize,
+						                    &MD2ExistPrevious
+						                    );
+						gRT->SetVariable (
+						                      L"HaloMd2Variable",
+						                      &gHaloMd2VariableGuid,
+						                      EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS,
+						                      sizeof (BOOLEAN),
+						                      &MD2Exist
+						                      );
+						
+				SignalAllDriversConnectedEvent                           [Bds.c]                           //Signal the event that says all drivers have been connected
+						SignalProtocolEvent(&gAmiBdsAllDriversConnectedProtocolGuid)           //Internal function that installs/uninstall protocol with a specified GUID
+								pBS->InstallProtocolInterface (
+								        &Handle, ProtocolGuid, EFI_NATIVE_INTERFACE,NULL
+								    );
+								    pBS->UninstallProtocolInterface (
+								        Handle, ProtocolGuid, NULL
+								    );
+								 
+				InstallFwLoadFile                            [Bds.c]                    //Install the LoadFileProtocol for the Built in EFI Shell
+						InstallFwLoadFileProtocol
+								pBS->InstallMultipleProtocolInterfaces(
+								        &Handle,
+								        &gEfiLoadFileProtocolGuid, &FwLoadFileInterface,
+								        &gEfiDevicePathProtocolGuid, &FwLoadFileDp,
+								        NULL
+								    );
+								
+				UpdateBootOptionVariables                      [BootOptions.c]                    //This function initializes the global variables. Must be called before any other boot option processing function can be used.
+						LoadStrings
+						DListInit
+						
+				ReadBootOptions                     [BootOptions.c]                         //Read the boot options from NVRAM and create associated boot options in the master boot option list for each boot option
+					
+				RemoveFastBootOption                          [FastBootOptionBds.c]                     //Remove all TempUefiDevice BootOption
+						CheckBootNextTempBootOption                        //Check BootNext device and find UEFI device, adjust BootNext number.
+						
+				AdjustLegacyBootOptionPriorities                  [BootOptions.c]              //Go through the legacy dev order structure and adjust it to match the current boot priorities
+						GetEfiVariable(
+						        L"LegacyDevOrder", &LegacyDevOrderGuid, NULL,
+						        &DevOrderSize, (VOID **)&DevOrder
+						    );
+						GetEfiVariable(
+						        L"OldLegacyDevOrder", &LegacyDevOrderGuid, NULL,
+						        &OldDevOrderSize, (VOID **)&OldDevOrder
+						    );
+						FOR_EACH_BOOT_OPTION
+						
+				UnmaskOrphanDevices                            [BootOptions.c]                     //This function unmasks orphan devices.
+						FOR_EACH_BOOT_OPTION
+						
+				CollectUsbBbsDevices                            [UsbBbs.c]                           //Create BBS table for each USB mass storage device
+						gBS->LocateProtocol(&gEfiUsbProtocolGuid, NULL, (VOID**)&AmiUsb)
+						AmiUsb->InstallUsbLegacyBootDevices
+						
+				CollectBootDevices                           [BootOptions.c]                        //Helper function to generate a master boot list based on the load file protocol,   
+				                                                                                                                     the simple file system protocol and, if CSM support is enabled, the legacy bbs  table
+						CollectProtocolDevices                            //Collect a list of all handles with a particular protocol installed on them and create a boot device for each handle
+						CollectBbsDevices                                     //Go through the BBS table and create a entry in the master boot order list for each BBS table entry
+						
+				FilterBootDeviceList                             [BootOptions.c]                       //Master filter handler.  Function will call all ELINK functions linked into the BootOptionBootDeviceFilteringFunctions list.
+				                                                                                                                        If any ELINK function returns FALSE, the device will be removed from the function list
+						FOR_EACH_BOOT_DEVICE
+						DeleteBootDevice                                         //Delete the Device out of the passed BootDeviceList
+						
+				CreateShellBootOption                            [BdsBoard.c]
+						IsShellDevicePath                                   //Check if Shell boot option already exists
+						IsSecureBoot                                          //The function checks if Secure Boot is enabled.
+						
+				MatchBootOptionsToDevices                         [BootOptions.c]                      //After collecting all the boot devices, and reading all the existing boot options, go through both
+				                                                                                                                                   lists and attempt to match each boot device to a boot option
+					
+				DeleteUnmatchedUefiHddBootDevices                              [BootOptions.c]               //Go through the list of boot devices and delete entries for UEFI HDDs entries. These are considered
+				                                                                                                                                                  fixed media devices, according to the UEFI specification, and should not be dynamically recreated.
+						DeleteBootDevice                                       //Delete the Device out of the passed BootDeviceList
+						
+				CreateBootOptionsForNewBootDevices                           [BootOptions.c]                 //Create boot options for the the newly discovered boot devices that have not been matched to existing boot options
+						CreateBootOption                                                     //Create a BOOT_OPTION for the first entry in the passed BootOptionList
+						UpdateBootOptionWithBootDeviceInfo               //Update the boot option with the information from the passed boot device information
+						DeleteBootDevice                                                     //Delete the Device out of the passed BootDeviceList
+						ConstructBootOptionName                                    //Create a boot option name
+						
+				DeleteShellBootOptionOnSecureBoot                                  [BdsBoard.c]        
+						DeleteBootOption                                     //Delete the passed BOOT_OPTION from the BootOptionList
+						
+				/*Process Boot Option List*/
+				
+				SetBootOptionTags                                    [BdsBoard.c]                          //Go through the entire boot option list and Apply priorities for each entry in the list
+						
+				NormalizeBootOptions                               [BootOptions.c]                        //If normalization is enabled, regenerates all the description strings and/or file path lists instead
+				                                                                                                                               of attempting to rely on the information that was read out the boot options
+				PreProcessBootOptions                        [BdsBoard.c]                     //Attempts to find stale boot options in the master boot option list, and apply the specified policy to them.
+						ApplyOrphanBootOptionPolicy                                  //Apply the correct policy to the passed orphaned boot options
+						
+				SetBootOptionPriorities                             [BdsBoard.c]                      //Go through the boot option list and set the priorities of each group of devices
+						
+				PostProcessBootOptions                         [BdsBoard.c]                     //Go through the master boot option list and apply orphan boot option policy to the boot option groups
+						ApplyOrphanBootOptionPolicy                                    //Apply the correct policy to the passed orphaned boot options
+						
+				MaskOrphanDevices                                  [BootOptions.c]               //This function masks orphan devices before saving them.
+						MaskFilePathList                             //Prepend the masking pattern to the device path of the passed BOOT_OPTION
+					
+				SaveLegacyDevOrder                                    [BootOptions.c]                //Go through the master boot option list and use it to update the legacy dev order variable
+						
+				SetBootNextBootOption                   [FastBootOptionBds.c]        //Compare Boot device type and re-setting variable "BootNext".
+						
+				SaveBootOptions                                 [BootOptions.c]                    //Save the boot options into NVRAM as L"BootXXXX" variables, and then update the L"BootOrder" NVRAM Variable
+				 
+				CallTheDispatcher                               [Bds.c]                                 //Function that locates the DXE Services table pointer, and calls the DXE dispatcher
+				                                                                                                                to attempt to execute any drivers there previous were not executed.
+						LibGetDxeSvcTbl(&pDxe))
+						pDxe->Dispatch()
+	
+				ProcessCapsulesAfterEndOfDxe                       [Bds.c]    
+						ProcessCapsules                                          //This routine is called to process capsules.
+								AmiDxeCapsuleLibPerformCapsuleVariableCleanup                          //Delete Capsule Variables
+								AmiDxeCapsuleLibPublishCpasulesToUefiSystemTable                     //Publish capsules to UEFI system table
+						
+				UpdateEsrtFmpEntries                               [Bds.c]                               //Updates FMP entries in the ECR table using EsrtManagement protocol
+						
+				RecoverTheMemoryAbove4Gb                      [Bds.c]                               //Go through the memory space and adjust the memory above 4Gb so that it is reported as usable
+				                                                                                                                            to operating systems. This is done to help prevent the BIOS from attempting to execute its code above the 4GB boundary
+				
+				HandoffToTse                                           [Bds.c]                                  //Attempt to give control to AMITSE
+						pRS->SetVariable(                                                           //Set a couple of standard UEFI variables
+						        L"BootOptionSupport", &gEfiGlobalVariableGuid,
+						        EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+						        sizeof(BootOptionSupport), &BootOptionSupport
+						    );
+						pRS->SetVariable(
+						        L"OsIndicationsSupported", &gEfiGlobalVariableGuid,
+						        EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+						        sizeof(OsIndicationsSupported), &OsIndicationsSupported
+						    );
+						pBS->InstallProtocolInterface                             //Install Boot Manager Policy protocol
+						FreeBootOptionList                                               //Free BootOptionList
+						AmiPostMgr->Handshake                                     //Hand off to TSE
+
+
+
+进Shell:
+PostManagerHandshake
+		_ProcessBootOptions                         //Check for OS Recovery and process normal boot if unavailable
+				BootLaunchBootOption                  //This function launches the boot option supplied
+						BootGetBootData                           //Normal bootoption
+						_BootLaunchDevicePath               //function to launch the boot operation
+								TseEfiCreateEventReadyToBoot(
+								                EFI_TPL_CALLBACK,
+								                NULL,
+								                NULL,
+								                &ReadyToBootEvent
+								                );
+								TSEIDEPasswordFreezeDevices                         //Hook function for the IDE Password fuctionality based on  the security token SETUP_IDE_SECURITY_SUPPORT 
+								BeforeEfiBootLaunchHook
+										GenericHook                                 //Locates the hook based on hooknum and calls them If hook not found it calls the default function.
+								_RegisterShellGuid                                            //Registers the shell guid
+										gBS->CreateEvent (
+												EFI_EVENT_NOTIFY_SIGNAL, 
+												EFI_TPL_CALLBACK,
+												_ShellClearScreen,
+												NULL,
+												&gShellLaunchEvent)
+										gBS->RegisterProtocolNotify(
+												&EfiShellInterfaceGuid,
+												gShellLaunchEvent,
+												&Registration
+												)
+								gBS->LoadImage
+								gBS->StartImage                        //Transfers control to a loaded image's entry point.
+								AfterEfiBootLaunchHook
+										GenericHook         //Locates the hook based on hooknum and calls them If hook not found it calls the default function
+
+进DOS:
+PostManagerHandshake
+		_ProcessBootOptions                         //Check for OS Recovery and process normal boot if unavailable
+				BootLaunchBootOption                  //This function launches the boot option supplied
+						BootGetBootData                           //Normal bootoption
+						_BootLaunchDevicePath               //function to launch the boot operation
+								TseEfiCreateEventReadyToBoot(
+								                EFI_TPL_CALLBACK,
+								                NULL,
+								                NULL,
+								                &ReadyToBootEvent
+								                )
+								BeforeLegacyBootLaunchHook
+										GenericHook                    //Locates the hook based on hooknum and calls them If hook not found it calls the default function.
+								UninstallBgrtWrapper                         //Wrapper function to call UninstallBgrtWrapper
+								CsmBBSLaunchDevicePath
+										BBSLaunchDevicePath                         //function to launch the device path
+												_BBSInitProtocol
+												gLegacyBios->LegacyBoot               //Boots a traditional OS
+														pRS->GetVariable        // Check if Secure Boot is on; if so, return EFI_SECURITY_VIOLATION
+														SignalAmiLegacyBootEvent     //int 19,选择从何种设备启动OS
+																SignalProtocolEvent
+														 gCoreBiosInfo->i8259->SetVectorBase                //Program legacy vector base in 8259
+														 FarCall86 (&gCoreBiosInfo->iBios,                        //Executes 16 bit code starting from a given address
+														                gCoreBiosInfo->Csm16EntrySeg,
+														                gCoreBiosInfo->Csm16EntryOfs,
+														                &RegSet,
+														                NULL,
+														                0)
+														gCoreBiosInfo->i8259->SetVectorBase(gCoreBiosInfo->i8259, MASTER_INTERRUPT_BASE, SLAVE_INTERRUPT_BASE);
+														gCoreBiosInfo->i8259->SetMask(gCoreBiosInfo->i8259, NULL , NULL, &gProtectedIrqMask, NULL);
+														
+														
+								ReInstallBgrtWrapper
+AfterLegacyBootLaunchHook

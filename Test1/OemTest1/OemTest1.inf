@@ -1,0 +1,26 @@
+
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemTest1
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = d6899e77-3d2c-450d-9fc1-055120fc1904
+    ENTRY_POINT = GetPciInfoEntryPoint
+
+[Sources]
+    GetPciInfo.c
+
+[LibraryClasses]
+    UefiDriverEntryPoint
+    AmiDxeLib
+    IoLib
+    DebugLib
+    PciLib
+
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+
+[Depex]
+    TRUE

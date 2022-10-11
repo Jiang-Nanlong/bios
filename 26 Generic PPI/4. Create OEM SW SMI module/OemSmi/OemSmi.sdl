@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemSmi_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemSmi support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemSmi"
+    File  = "OemSmi.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_SMM_DRIVER"
+    Token = "OemSmi_INF_SUPPORT" "=" "1"
+End
+
