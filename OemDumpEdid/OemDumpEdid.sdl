@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemDumpEdid_INF_SUPPORT"
+    Value  = "0"
+    Help  = "Main switch to enable OemDumpEdid support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemDumpEdid"
+    File  = "OemDumpEdid.inf"
+    Package  = "OemPkg"
+    ModuleTypes = "UEFI_APPLICATION"
+    Token = "OemDumpEdid_INF_SUPPORT" "=" "1"
+End
+

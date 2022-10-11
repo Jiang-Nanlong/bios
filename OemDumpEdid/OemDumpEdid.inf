@@ -1,0 +1,31 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemDumpEdid
+    MODULE_TYPE = UEFI_APPLICATION
+    FILE_GUID = c3304907-83e8-4903-8db5-dd3259c64678
+    ENTRY_POINT = DumpEdidEntryPoint
+
+[Sources]
+    DumpEdid.c
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiTsePkg/AmiTsePkg.dec
+    
+[LibraryClasses]
+    UefiApplicationEntryPoint
+    UefiBootServicesTableLib
+    UefiLib
+    UefiRuntimeServicesTableLib
+    PciLib
+    AmiDxeLib
+
+[Protocols]
+    gEfiDevicePathToTextProtocolGuid
+    gEfiEdidDiscoveredProtocolGuid
+    gEfiEdidActiveProtocolGuid
+    gEfiEdidOverrideProtocolGuid

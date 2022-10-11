@@ -1,0 +1,10 @@
+<component>
+    name = "OemDumpEdid"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemDumpEdid\"
+    RefName = "OemDumpEdid"
+[INF]
+"OemDumpEdid.inf"
+[files]
+"OemDumpEdid.sdl"	
+<endComponent>
