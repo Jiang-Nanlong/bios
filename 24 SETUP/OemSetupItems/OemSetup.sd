@@ -1,0 +1,82 @@
+//***********************************************************************
+//*                                                                     *
+//*   Copyright (c) 1985-2019, American Megatrends International LLC.   *
+//*                                                                     *
+//*      All rights reserved. Subject to AMI licensing agreement.       *
+//*                                                                     *
+//***********************************************************************
+
+#ifdef SETUP_DATA_DEFINITION
+    UINT8   Oemoneof;
+    UINT8   Oemcheckbox;
+#endif
+
+#if defined(VFRCOMPILE) && !defined(CONTROLS_ARE_DEFINED)
+#define CONTROL_DEFINITION
+#endif
+
+#ifdef CONTROL_DEFINITION
+        
+#define OEM_ONEOF_OPTION\
+    oneof varid    = SETUP_DATA.Oemoneof,\
+        prompt   = STRING_TOKEN(STR_OEM_ONEOF),\
+        help     = STRING_TOKEN(STR_OEM_ONEOF_HELP),\
+        option text = STRING_TOKEN(STR_OEM_STRING1), value = 0, flags = DEFAULT | MANUFACTURING | RESET_REQUIRED;\
+        option text = STRING_TOKEN(STR_OEM_STRING2), value = 1, flags = RESET_REQUIRED;\
+        option text = STRING_TOKEN(STR_OEM_STRING3), value = 2, flags = RESET_REQUIRED;\
+    endoneof;
+      
+#define OEM_CHECKBOX_OPTION\
+    checkbox varid = SETUP_DATA.Oemcheckbox,\
+        prompt = STRING_TOKEN(STR_OEM_CHECKBOX),\
+        help = STRING_TOKEN(STR_OEM_CHECKBOX_HELP),\
+        flags = 0,\
+        key = 0,\
+        default = 0,\
+        default = 0, defaultstore = AmiMfgDefault,\
+    endcheckbox;
+#endif //#ifdef CONTROL_DEFINITION
+
+#ifdef ADVANCED_FORM_SET 
+
+    #ifdef FORM_SET_GOTO
+        goto OEM_FORM_ADVANCED_ID,
+            prompt = STRING_TOKEN(STR_OEM_EXTRA_OPTIONS_FORM_TITLE),
+            help = STRING_TOKEN(STR_OEM_EXTRA_OPTIONS_FORM_TITLE_HELP);
+    #endif
+    
+    #ifdef FORM_SET_FORM
+    
+    form formid = AUTO_ID(OEM_FORM_ADVANCED_ID),
+        title   = STRING_TOKEN (STR_OEM_EXTRA_OPTIONS_FORM_TITLE);
+            
+        SUBTITLE(STRING_TOKEN(STR_OEM_SUBTITLE))
+        SEPARATOR
+        
+        text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT1),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE);
+            
+        OEM_ONEOF_OPTION
+        OEM_CHECKBOX_OPTION
+        
+        suppressif ideqval SETUP_DATA.Oemoneof == 0;    //When oemoneof is 0, hide the checkbox
+            text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT2),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE);
+        endif;
+        
+        grayoutif ideqval SETUP_DATA.Oemoneof == 1;     //When oemoneof is 1, the checkbox will be grayed out
+            text
+            help = STRING_TOKEN(STR_OEM_TEXT_HELP),
+            text = STRING_TOKEN(STR_OEM_TEXT3),
+            text = STRING_TOKEN(STR_OEM_TEXT_VALUE);
+        endif;
+        
+    endform;
+                 
+    #endif //End of FORM_SET_FORM
+
+#endif// End of ADVANCED_FORM_SET

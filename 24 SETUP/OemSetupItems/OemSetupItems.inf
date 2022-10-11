@@ -1,0 +1,33 @@
+//***********************************************************************
+//*                                                                     *
+//*   Copyright (c) 1985-2019, American Megatrends International LLC.   *
+//*                                                                     *
+//*      All rights reserved. Subject to AMI licensing agreement.       *
+//*                                                                     *
+//***********************************************************************
+
+[Defines]
+	INF_VERSION  =  0x00010005
+	VERSION_STRING  =  1.0
+	BASE_NAME  = OemSetupItems
+	MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = d78132f8-4a47-463a-a66c-19f03f6ae430
+    ENTRY_POINT = SetLogoStatusEntryPoint
+
+[Sources]
+    OemSetLogo.c
+
+[LibraryClasses]
+    AmiDxeLib
+    UefiDriverEntryPoint
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    AmiModulePkg\AmiModulePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiTsePkg/AmiTsePkg.dec
+    
+[Depex]
+    TRUE
+	

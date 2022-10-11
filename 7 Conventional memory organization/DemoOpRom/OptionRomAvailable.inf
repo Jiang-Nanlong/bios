@@ -1,0 +1,41 @@
+//***********************************************************************
+//*                                                                     *
+//*   Copyright (c) 1985-2019, American Megatrends International LLC.   *
+//*                                                                     *
+//*      All rights reserved. Subject to AMI licensing agreement.       *
+//*                                                                     *
+//***********************************************************************
+
+[Defines]
+	INF_VERSION  =  0x00010005
+	VERSION_STRING  =  1.0
+	BASE_NAME  = OptionRomAvailable
+	MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = 0c4d47d3-0688-4408-8789-7769c9557c9c
+    ENTRY_POINT = VerifyOpRomAvailableEntryPoint
+
+[Sources]
+    VerfyOpRomAvailable.c
+
+[LibraryClasses]
+    UefiDriverEntryPoint
+    AmiDxeLib
+    AmiCspLib
+    IoLib
+    BaseLib
+    DebugLib
+    PciLib
+
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    IntelFrameworkPkg/IntelFrameworkPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    AmiChipsetModulePkg/AmiChipsetModulePkg.dec
+    SkyBayPkg/SkyBayPkg.dec
+
+[Depex]
+    gEfiPciRootBridgeIoProtocolGuid
+
+	

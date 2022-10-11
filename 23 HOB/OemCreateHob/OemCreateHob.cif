@@ -1,0 +1,10 @@
+<component>
+    name = "OemCreateHob"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemCreateHob\"
+    RefName = "OemCreateHob"
+[INF]
+"OemCreateHob.inf"
+[files]
+"OemCreateHob.sdl"	
+<endComponent>

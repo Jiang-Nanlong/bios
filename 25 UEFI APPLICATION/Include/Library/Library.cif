@@ -1,0 +1,9 @@
+<component>
+    name = "Library"
+    category = ModulePart
+    LocalRoot = "OemPkg\Include\Library\"
+    RefName = "Library"
+[files]
+"library.h"	
+"OemGetTimeLib.h"	
+<endComponent>

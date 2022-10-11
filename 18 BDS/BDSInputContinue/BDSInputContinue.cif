@@ -1,0 +1,10 @@
+<component>
+    name = "BDSInputContinue"
+    category = ModulePart
+    LocalRoot = "OemPkg\BDSInputContinue\"
+    RefName = "BDSInputContinue"
+[INF]
+"BDSInputContinue.inf"
+[files]
+"BDSInputContinue.sdl"	
+<endComponent>

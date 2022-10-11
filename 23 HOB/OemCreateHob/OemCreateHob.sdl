@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemCreateHob_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemCreateHob support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemCreateHob"
+    File  = "OemCreateHob.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "PEIM"
+    Token = "OemCreateHob_INF_SUPPORT" "=" "1"
+End
+

@@ -1,0 +1,30 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = DemoLocate
+    MODULE_TYPE = PEIM
+    FILE_GUID = 635c0263-217b-41e1-afaf-20274fcc5841
+    ENTRY_POINT = LocatePpiEntryPoint
+
+[Sources]
+    LocatePpi.c
+
+[LibraryClasses]
+    PeimEntryPoint
+    AmiPeiLib
+    IoLib
+    BaseLib
+    DebugLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    IntelFrameworkPkg/IntelFrameworkPkg.dec
+    AmiChipsetModulePkg/AmiChipsetModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+[Ppis]
+    gWriteAndReadCmosGuid
+[Depex]
+    gWriteAndReadCmosGuid
+    

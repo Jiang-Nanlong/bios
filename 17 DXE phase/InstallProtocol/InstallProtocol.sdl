@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "InstallProtocol_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable InstallProtocol support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "InstallProtocol"
+    File  = "InstallProtocol.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "InstallProtocol_INF_SUPPORT" "=" "1"
+End
+

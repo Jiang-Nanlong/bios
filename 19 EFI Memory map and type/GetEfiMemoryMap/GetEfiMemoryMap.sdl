@@ -1,0 +1,28 @@
+TOKEN
+    Name  = "GetEfiMemoryMap_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable GetEfiMemoryMap support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "GetEfiMemoryMap"
+    File  = "GetEfiMemoryMap.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "GetEfiMemoryMap_INF_SUPPORT" "=" "1"
+End
+
+ELINK
+    Name  = "GetMemInfo,"
+    Parent  = "/* Full System Initialization */"
+    InvokeOrder = AfterParent
+End
+
+LibraryMapping
+    Class  = "NULL"
+    Instance  = "OemPkg.GetEfiMemoryMap"
+    Override  = "AmiModulePkg.Bds"
+End

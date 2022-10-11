@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "DemoLocate_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable DemoLocate support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "DemoLocate"
+    File  = "DemoLocate.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "PEIM"
+    Token = "DemoLocate_INF_SUPPORT" "=" "1"
+End
+

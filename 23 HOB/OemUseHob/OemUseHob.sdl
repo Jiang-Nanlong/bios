@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OemUseHob_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemUseHob support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemUseHob"
+    File  = "OemUseHob.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OemUseHob_INF_SUPPORT" "=" "1"
+End
+

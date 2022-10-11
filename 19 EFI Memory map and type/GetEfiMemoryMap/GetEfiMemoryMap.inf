@@ -1,0 +1,18 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = GetEfiMemoryMap
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = 921a9e34-6967-4786-85ae-9a12bf8ffe60
+    LIBRARY_CLASS = NULL
+[Sources]
+    GetMemInfo.c
+
+[LibraryClasses]
+    AmiDxeLib
+    UefiDriverEntryPoint
+[Packages]
+    MdePkg/MdePkg.dec
+    OemPkg/OemPkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec

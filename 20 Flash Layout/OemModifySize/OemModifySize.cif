@@ -1,0 +1,8 @@
+<component>
+    name = "OemModifySize"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemModifySize\"
+    RefName = "OemModifySize"
+[files]
+"OemModifySize.sdl"	
+<endComponent>

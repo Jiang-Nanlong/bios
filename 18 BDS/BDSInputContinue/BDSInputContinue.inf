@@ -1,0 +1,18 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = BDSInputContinue
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = f644a6c8-550c-43bd-977a-3320f382dea1
+    LIBRARY_CLASS = NULL
+[Sources]
+    PressKeyToContinue.c
+
+[LibraryClasses]
+    AmiDxeLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec

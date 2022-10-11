@@ -1,0 +1,49 @@
+TOKEN
+    Name  = "OemModifySize_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemModifySize support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+TOKEN
+    Name  = "DEMO_MODIFY_SIZE"
+    Value  = "0x1000"
+    Help  = "size of DEMO_MODIFY"
+    TokenType = Integer
+    TargetEQU = Yes
+    TargetMAK = Yes
+    TargetH = Yes
+End
+
+TOKEN
+    Name  = "FV_MAIN_SIZE"
+    Value  = "$(FLASH_SIZE) - $(FV_BB_SIZE) - $(FV_BB_AFTER_MEMORY_SIZE) - $(FV_DATA_SIZE) - $(FV_MAIN_OFFSET)-$(DEMO_MODIFY_SIZE)"
+    Help  = "Size of the FV_BB_AFTER_MEMORY"
+    TokenType = Integer
+    TargetEQU = Yes
+    TargetMAK = Yes
+    TargetH = Yes
+End
+
+FD_AREA
+    Name  = "FV_MAIN_WRAPPER"
+    TYPE  = "FV"
+    FD_INFO  = "AMIROM"
+    Offset  = "$(FLASH_SIZE) - $(FV_BB_SIZE) - $(FV_BB_AFTER_MEMORY_SIZE) - $(FV_DATA_SIZE) - $(DEMO_MODIFY_SIZE) - $(FV_MAIN_SIZE)"
+    Size  = "$(FV_MAIN_SIZE)"
+    Alignment  = "16"
+    Guid  = "c6443a82-f87e-4b3e-a6a9-814e248126fb"
+End
+
+FD_AREA
+    Name  = "DEMO_MODIFY"
+    TYPE  = "FV"
+    FD_INFO  = "AMIROM"
+    Offset  = "$(FLASH_SIZE) - $(FV_BB_SIZE) - $(FV_BB_AFTER_MEMORY_SIZE) - $(FV_DATA_SIZE) - $(DEMO_MODIFY_SIZE)"
+    Size  = "$(DEMO_MODIFY_SIZE)"
+    Alignment  = "16"
+    Guid  = "959e2a93-bfdb-49c1-b36f-638b7e06e4a1"
+End
+

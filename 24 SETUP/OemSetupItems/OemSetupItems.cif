@@ -1,0 +1,12 @@
+<component>
+    name = "OemSetupItems"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemSetupItems\"
+    RefName = "OemSetupItems"
+[INF]
+"OemSetupItems.inf"
+[files]
+"OemSetupItems.sdl"	
+"OemSetup.sd"	
+"OemSetup.uni"	
+<endComponent>

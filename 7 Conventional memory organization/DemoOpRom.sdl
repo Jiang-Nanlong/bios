@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "OptionRomAvailable_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OptionRomAvailable support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OptionRomAvailable"
+    File  = "DemoOpRom/OptionRomAvailable.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OptionRomAvailable_INF_SUPPORT" "=" "1"
+End
+

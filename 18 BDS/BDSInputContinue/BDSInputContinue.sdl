@@ -1,0 +1,28 @@
+TOKEN
+    Name  = "BDSInputContinue_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable BDSInputContinue support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "BDSInputContinue"
+    File  = "BDSInputContinue.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "BDSInputContinue_INF_SUPPORT" "=" "1"
+End
+
+ELINK
+    Name  = "PressKeyToContinue,"
+    Parent  = "/* Full System Initialization */"
+    InvokeOrder = AfterParent
+End
+
+LibraryMapping
+    Class  = "NULL"
+    Instance  = "OemPkg.BDSInputContinue"
+    Override  = "AmiModulePkg.Bds"
+End

@@ -1,0 +1,33 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemCreateHob
+    MODULE_TYPE = PEIM
+    FILE_GUID = 50348d32-bca3-472d-b4b1-65ef81ab59d7
+    ENTRY_POINT = CreateHobEntryPoint
+
+[Sources]
+    OemCreateHob.c
+
+[LibraryClasses]
+    PeimEntryPoint
+    AmiPeiLib
+    IoLib
+    BaseLib
+    HobLib
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    IntelFrameworkPkg/IntelFrameworkPkg.dec
+    KabylakeSiliconPkg/SiPkg.dec
+    AmiChipsetPkg\AmiChipsetPkg.dec
+[Guids]
+    gCreateAndUseHobGuid
+    gSiMemoryInfoDataGuid
+    
+[Ppis]
+    gAmiPeiAfterMrcGuid
+[Depex]
+    gAmiPeiAfterMrcGuid

@@ -1,0 +1,29 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemUseHob
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = f4e5dc8e-d377-489e-aeca-1ac169a4aa5f
+    ENTRY_POINT = UseHobEntryPoint
+
+[Sources]
+    OemUseHob.c
+
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiDriverEntryPoint
+    HobLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    
+[Guids]
+    gCreateAndUseHobGuid
+[Depex]
+    TRUE
+    

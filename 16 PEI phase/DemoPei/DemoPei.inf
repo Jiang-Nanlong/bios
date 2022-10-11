@@ -1,0 +1,29 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = DemoPei
+    MODULE_TYPE = PEIM
+    FILE_GUID = ea4758cf-a0b9-4da8-bdd2-24a3622ccb3f
+    ENTRY_POINT = DemoPeiEntryPoint
+
+[Sources]
+
+    DemoPpi.c
+
+[LibraryClasses]
+    PeimEntryPoint
+    AmiPeiLib
+    IoLib
+    BaseLib
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+[Ppis]
+    gWriteAndReadCmosGuid
+[Guids]
+    
+[Depex]
+    TRUE

@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "DemoPei_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable DemoPei support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "DemoPei"
+    File  = "DemoPei.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "PEIM"
+    Token = "DemoPei_INF_SUPPORT" "=" "1"
+End
+

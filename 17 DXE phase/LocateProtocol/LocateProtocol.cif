@@ -1,0 +1,10 @@
+<component>
+    name = "LocateProtocol"
+    category = ModulePart
+    LocalRoot = "OemPkg\LocateProtocol\"
+    RefName = "LocateProtocol"
+[INF]
+"LocateProtocol.inf"
+[files]
+"LocateProtocol.sdl"	
+<endComponent>

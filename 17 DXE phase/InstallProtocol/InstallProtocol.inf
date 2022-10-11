@@ -1,0 +1,26 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = InstallProtocol
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = 6925ae03-8e96-40a3-84a6-aa3bae0e4228
+    ENTRY_POINT = InstallProtocolsEntryPoint
+
+[Sources]
+    InstallProtocols.c
+
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiDriverEntryPoint
+    
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+[Protocols]
+    gRwCmosProtocolGuid
+[Depex]
+    TRUE

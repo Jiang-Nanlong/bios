@@ -1,0 +1,17 @@
+TOKEN
+    Name  = "LocateProtocol_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable LocateProtocol support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "LocateProtocol"
+    File  = "LocateProtocol.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "LocateProtocol_INF_SUPPORT" "=" "1"
+End
+

@@ -1,0 +1,10 @@
+<component>
+    name = "InstallProtocol"
+    category = ModulePart
+    LocalRoot = "OemPkg\InstallProtocol\"
+    RefName = "InstallProtocol"
+[INF]
+"InstallProtocol.inf"
+[files]
+"InstallProtocol.sdl"	
+<endComponent>
