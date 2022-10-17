@@ -1,0 +1,104 @@
+BIOS获取时间的逻辑
+UefiGetTime()                  [uefi21wapper.c]
+	if((control != NULL) && (control->ControlPtr != NULL))
+	  {
+		IfrPtr = control->ControlPtr; 
+		Flags = UefiGetFlagsField(IfrPtr) ;
+	
+	
+		if( ((Flags & QF_TIME_STORAGE) == QF_TIME_STORAGE_TIME)||
+		    ((Flags & EFI_QF_DATE_STORAGE) == QF_DATE_STORAGE_TIME)  )//  Incorrect logic used to check Time and Date control types
+		{
+			Status = gRT->GetTime( Tm, NULL );
+		}
+	}
+		SbRuntimeServiceInit()      [SbRun.c]
+			pRS->ResetSystem    = ResetSystemDispatcher;
+			pRS->GetTime        = AmiChipsetGetTime;
+			pRS->SetTime        = AmiChipsetSetTime;
+			pRS->GetWakeupTime  = AmiChipsetGetWakeupTime;
+			pRS->SetWakeupTime  = AmiChipsetSetWakeupTime;
+				AmiChipsetGetTime()            [SbRuntimeServiceLib.c]
+					Time->Second = ReadRtcIndex(RTC_SECONDS_REG);              RTC_SECONDS_REG  //0x00       秒
+					Year = ReadRtcIndex(RTC_YEAR_REG);                         RTC_YEAR_REG          //0x09       年
+					Time->Month = ReadRtcIndex(RTC_MONTH_REG);                 RTC_MONTH_REG     //0x08       月
+					Time->Day = ReadRtcIndex(RTC_DAY_OF_MONTH_REG);            RTC_DAY_OF_MONTH_REG      //0x07  日
+					Time->Hour = ReadRtcIndex(RTC_HOURS_REG);                  RTC_HOURS_REG        //0x04    小时
+					Time->Minute = ReadRtcIndex(RTC_MINUTES_REG);              RTC_MINUTES_REG    //0x02    分钟
+					Time->Year = ReadRtcIndex(ACPI_CENTURY_CMOS) * 100 + Year;           ACPI_CENTURY_CMOS   //0x32    世纪
+						ReadRtcIndex            [SbRuntimeServiceLib.c]                     //Read the RTC value at the given Index.
+							IoWrite8(CMOS_IO_INDEX_BACKDOOR, Index);                    CMOS_IO_INDEX_BACKDOOR //0x74
+							Value = IoRead8(CMOS_IO_DATA_BACKDOOR);                     CMOS_IO_DATA_BACKDOOR  //0x75
+
+
+Emulator下获取时间
+
+InitializeRealTimeClock()         [RealTimeClock.c]
+	SystemTable->RuntimeServices->GetTime       = EmuGetTime;
+	SystemTable->RuntimeServices->SetTime       = EmuSetTime;
+	SystemTable->RuntimeServices->GetWakeupTime = EmuGetWakeupTime;
+	SystemTable->RuntimeServices->SetWakeupTime = EmuSetWakeupTime;
+	EmuGetTime()         [RealTimeClock.c]
+		gEmuThunk->GetTime (Time, Capabilities);
+			EMU_THUNK_PROTOCOL  *gEmuThunk = NULL;             [DxeEmuLib.c]
+			DxeEmuLibConstructor()
+				GuidHob = GetFirstGuidHob (&gEmuThunkProtocolGuid);
+				gEmuThunk = (EMU_THUNK_PROTOCOL *)(*(UINTN *)(GET_GUID_HOB_DATA (GuidHob)));
+					PeiInitialzeThunkPpiToProtocolPei()                  [ThunkPpiToProtocolPei.c]
+						Status = PeiServicesLocatePpi (
+							     &gEmuThunkPpiGuid,         // GUID
+							     0,                         // INSTANCE
+							     &PpiDescriptor,            // EFI_PEI_PPI_DESCRIPTOR
+							     (VOID **)&Thunk            // PPI
+							     );
+						Ptr = Thunk->Thunk ();
+						
+						BuildGuidDataHob (
+						    &gEmuThunkProtocolGuid,              // Guid
+						    &Ptr,                                // Buffer
+						    sizeof (VOID *)                      // Sizeof Buffer
+						    );
+							main()       [WinHost.c]
+								  // PPIs pased into PEI_CORE
+								  AddThunkPpi (EFI_PEI_PPI_DESCRIPTOR_PPI, &gEmuThunkPpiGuid, &mSecEmuThunkPpi);
+									EMU_THUNK_PPI  mSecEmuThunkPpi = {
+									  WinPeiAutoScan,
+									  WinFdAddress,
+									  WinThunk
+									};
+										WinThunk (){
+												return &gEmuThunkProtocol;
+										}
+											EMU_THUNK_PROTOCOL  gEmuThunkProtocol = {
+											  SecWriteStdErr,
+											  SecConfigStdIn,
+											  SecWriteStdOut,
+											  SecReadStdIn,
+											  SecPollStdIn,
+											  SecAlloc,
+											  NULL,
+											  SecFree,
+											  SecPeCoffGetEntryPoint,
+											  PeCoffLoaderRelocateImageExtraAction,
+											  PeCoffLoaderUnloadImageExtraAction,
+											  SecEnableInterrupt,
+											  SecDisableInterrupt,
+											  SecQueryPerformanceFrequency,
+											  SecQueryPerformanceCounter,
+											  SecSleep,
+											  SecCpuSleep,
+											  SecExit,
+											  SecGetTime,
+											  SecSetTime,
+											  SecSetTimer,
+											  GetNextThunkProtocol
+											};
+												SecGetTime()                       [WinThunk.c]
+													GetLocalTime (&SystemTime);            //获取系统时间
+														Time->Year       = (UINT16)SystemTime.wYear;
+														Time->Month      = (UINT8)SystemTime.wMonth;
+														Time->Day        = (UINT8)SystemTime.wDay;
+														Time->Hour       = (UINT8)SystemTime.wHour;
+														Time->Minute     = (UINT8)SystemTime.wMinute;
+														Time->Second     = (UINT8)SystemTime.wSecond;
+														Time->Nanosecond = (UINT32)(SystemTime.wMilliseconds * 1000000);
