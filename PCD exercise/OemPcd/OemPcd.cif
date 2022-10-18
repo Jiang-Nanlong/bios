@@ -1,0 +1,10 @@
+<component>
+    name = "OemPcd"
+    category = ModulePart
+    LocalRoot = "OemPkg\OemPcd\"
+    RefName = "OemPcd"
+[INF]
+"OemPcd.inf"
+[files]
+"OemPcd.sdl"	
+<endComponent>

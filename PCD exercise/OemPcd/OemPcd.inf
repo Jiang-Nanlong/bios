@@ -1,0 +1,29 @@
+[Defines]
+    INF_VERSION = 0x00010015
+    VERSION_STRING = 1.0
+    BASE_NAME = OemPcd
+    MODULE_TYPE = DXE_DRIVER
+    FILE_GUID = 2ae05ca5-908c-465c-9e51-3706b7e4e4bf
+    ENTRY_POINT = ChangePcdValueEntryPoint
+
+[Sources]
+    ChangePcdValue.c
+    
+[LibraryClasses]
+    IoLib
+    DebugLib
+    AmiDxeLib
+    UefiDriverEntryPoint
+    PcdLib
+[Packages]
+    MdePkg/MdePkg.dec
+    AmiModulePkg/AmiModulePkg.dec
+    OemPkg/OemPkg.dec
+    AmiCompatibilityPkg/AmiCompatibilityPkg.dec
+    
+[Pcd]
+    gOemPkgPcdGuid.OemPcdName
+    gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate
+[Depex]
+    TRUE
+    

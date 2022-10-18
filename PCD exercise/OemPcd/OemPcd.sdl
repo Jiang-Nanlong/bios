@@ -1,0 +1,36 @@
+TOKEN
+    Name  = "OemPcd_INF_SUPPORT"
+    Value  = "1"
+    Help  = "Main switch to enable OemPcd support in Project"
+    TokenType = Boolean
+    TargetMAK = Yes
+    Master = Yes
+End
+
+INFComponent
+    Name  = "OemPcd"
+    File  = "OemPcd.inf"
+    Package  = "OemPkg"
+    ModuleTypes  = "DXE_DRIVER"
+    Token = "OemPcd_INF_SUPPORT" "=" "1"
+End
+
+#PcdMapping
+#    Name  = "OemPcdName"
+#    GuidSpace  = "gOemPkgPcdGuid"
+#    PcdType  = "PcdsDynamicDefault"
+#    DataType  = "Uint64"
+#    Value  = "0xFFFF0000"
+#    Offset  = 00h
+#    Length  = 08h
+#    TargetDSC = Yes
+#End
+PcdMapping
+    Name  = "OemPcdName"
+    GuidSpace  = "gOemPkgPcdGuid"
+    PcdType  = "PcdsPatchableInModule"
+    Value  = "0x0"
+    Offset  = 00h
+    Length  = 08h
+    TargetDSC = Yes
+End
